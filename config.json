@@ -1,4 +1,5 @@
 {
+  "defaultLanguage": "en",
   "localFiles": [
     "data/tasks/example-owner.json",
     "data/tasks/example-dev-bot.json",

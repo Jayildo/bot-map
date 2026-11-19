@@ -5,12 +5,13 @@
   const STALE_MS = 60 * 60 * 1000;
   const ROW_H = 26;
   const COL_W = 228;
+  const { t, tCount } = window.BotMapI18n;
   const STATUS = {
-    approval: { label: "승인대기", color: "#f43f5e" },
-    check: { label: "확인필요", color: "#f5b942" },
-    in_progress: { label: "진행중", color: "#5b9dff" },
-    done: { label: "끝남", color: "#86c9a5" },
-    cancelled: { label: "취소", color: "#6d6d77" },
+    approval: { color: "#f43f5e" },
+    check: { color: "#f5b942" },
+    in_progress: { color: "#5b9dff" },
+    done: { color: "#86c9a5" },
+    cancelled: { color: "#6d6d77" },
   };
   const AVATAR_COLORS = {
     blue: "#3b82f6",
@@ -41,6 +42,8 @@
     filterBot: typeof savedFilters.filterBot === "string" ? savedFilters.filterBot : "",
     mineOnly: Boolean(savedFilters.mineOnly),
     botOrder: [],
+    loaded: false,
+    loadFailed: false,
   };
 
   const els = {
@@ -73,17 +76,31 @@
     return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6] || 0));
   }
 
+  const formatters = new Map();
+
+  function localeFormats() {
+    const locale = window.BotMapI18n.getLocale();
+    if (!formatters.has(locale)) {
+      formatters.set(locale, {
+        clock: new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
+        date: new Intl.DateTimeFormat(locale, { month: "numeric", day: "numeric" }),
+      });
+    }
+    return formatters.get(locale);
+  }
+
   function formatTime(value, withDate = false) {
     const d = parseTime(value);
     if (!d || Number.isNaN(d.getTime())) return "";
     const now = new Date();
-    const clock = `${`${d.getHours()}`.padStart(2, "0")}:${`${d.getMinutes()}`.padStart(2, "0")}`;
+    const fmt = localeFormats();
+    const clock = fmt.clock.format(d);
     const sameDay = d.toDateString() === now.toDateString();
     const yday = new Date(now);
     yday.setDate(now.getDate() - 1);
-    if (!withDate && sameDay) return `오늘 ${clock}`;
-    if (!withDate && d.toDateString() === yday.toDateString()) return `어제 ${clock}`;
-    return `${d.getMonth() + 1}/${d.getDate()} ${clock}`;
+    if (!withDate && sameDay) return t("time.today", { clock });
+    if (!withDate && d.toDateString() === yday.toDateString()) return t("time.yesterday", { clock });
+    return `${fmt.date.format(d)} ${clock}`;
   }
 
   function isOverdue(task) {
@@ -107,16 +124,16 @@
     let text;
     if (day >= 1) {
       const h = hour % 24;
-      text = h ? `${day}일 ${h}시간` : `${day}일`;
+      text = h ? `${tCount("dur.day", day)} ${tCount("dur.hour", h)}` : tCount("dur.day", day);
     } else if (hour >= 1) {
       const m = min % 60;
-      text = m ? `${hour}시간 ${m}분` : `${hour}시간`;
+      text = m ? `${tCount("dur.hour", hour)} ${tCount("dur.min", m)}` : tCount("dur.hour", hour);
     } else if (min < 1) {
-      return late ? "방금 지남" : "1분 남음";
+      return late ? t("remain.justOverdue") : t("remain.oneMinLeft");
     } else {
-      text = `${min}분`;
+      text = tCount("dur.min", min);
     }
-    return late ? `${text} 지남` : `${text} 남음`;
+    return t(late ? "remain.overdue" : "remain.left", { time: text });
   }
 
   function isSameDay(value, now = new Date()) {
@@ -163,7 +180,7 @@
   }
 
   function statusLabel(key) {
-    return (STATUS[key] || STATUS.in_progress).label;
+    return t(`status.${STATUS[key] ? key : "in_progress"}`);
   }
 
   function avatarFill(colorKey) {
@@ -215,8 +232,8 @@
   }
 
   function stageHtml(stage) {
-    if (stage === "active") return `<span class="stage-tag active">하는 중</span>`;
-    if (stage === "queued") return `<span class="stage-tag">대기</span>`;
+    if (stage === "active") return `<span class="stage-tag active">${t("stage.active")}</span>`;
+    if (stage === "queued") return `<span class="stage-tag">${t("stage.queued")}</span>`;
     return "";
   }
 
@@ -229,7 +246,7 @@
   function extLinkHtml(task) {
     const href = taskHref(task);
     if (!href) return "";
-    return `<span class="task-ext-link" data-ext-href="${escapeHtml(href)}">링크</span>`;
+    return `<span class="task-ext-link" data-ext-href="${escapeHtml(href)}">${t("link")}</span>`;
   }
 
   function splitTasks(tasks) {
@@ -329,6 +346,7 @@
       /* fall back to local files listed in config.json */
     }
     const config = await loadConfig();
+    window.BotMapI18n.setConfigDefault(config.defaultLanguage);
     if (Array.isArray(config.order)) state.botOrder = config.order;
     if (!results) {
       const files = Array.isArray(config.localFiles) ? config.localFiles : [];
@@ -351,6 +369,7 @@
         botRole: bot.role,
       }))
     );
+    state.loadFailed = false;
   }
 
   function inboxTasks() {
@@ -367,18 +386,22 @@
   }
 
   function renderRefresh() {
+    if (state.loadFailed) {
+      els.refreshMeta.textContent = t("error.load");
+      return;
+    }
     const times = state.bots
       .map((b) => parseTime(b.updated_at))
       .filter((d) => d && !Number.isNaN(d.getTime()));
     const latest = times.length ? new Date(Math.max(...times.map((d) => d.getTime()))) : new Date();
-    els.refreshMeta.textContent = `마지막 갱신 ${formatTime(latest, true)} · 1분마다 갱신`;
+    els.refreshMeta.textContent = t("refreshMeta", { time: formatTime(latest, true) });
   }
 
   function renderInbox() {
     const items = inboxTasks();
     els.inboxCount.textContent = String(items.length);
     if (!items.length) {
-      els.inboxTrack.innerHTML = `<p class="inbox-empty">지금은 승인하거나 확인할 일이 없어.</p>`;
+      els.inboxTrack.innerHTML = `<p class="inbox-empty">${t("inbox.empty")}</p>`;
       return;
     }
     els.inboxTrack.innerHTML = items
@@ -418,25 +441,25 @@
   }
 
   function renderTimeline(entries) {
-    if (!entries || !entries.length) return `<p class="note" style="opacity:.7">아직 기록이 없어.</p>`;
+    if (!entries || !entries.length) return `<p class="note" style="opacity:.7">${t("timeline.empty")}</p>`;
     const items = [...entries]
       .sort((a, b) => (parseTime(a.at)?.getTime() ?? 0) - (parseTime(b.at)?.getTime() ?? 0))
       .map((e) => {
         const link =
           e.link && /^https?:/.test(e.link)
-            ? `<div><a class="link-pill" href="${escapeHtml(e.link)}" target="_blank" rel="noopener">링크</a></div>`
+            ? `<div><a class="link-pill" href="${escapeHtml(e.link)}" target="_blank" rel="noopener">${t("link")}</a></div>`
             : e.link
               ? `<div><span class="link-pill">${escapeHtml(e.link)}</span></div>`
               : "";
         return `<li><span class="at">${escapeHtml(formatTime(e.at, true))}</span><span class="tx">${escapeHtml(e.text)}</span>${link}</li>`;
       })
       .join("");
-    return `<h4>진행 기록</h4><ol class="timeline">${items}</ol>`;
+    return `<h4>${t("timeline.title")}</h4><ol class="timeline">${items}</ol>`;
   }
 
   function pinButton(nodeId) {
     const pinned = Boolean(loadPins()[nodeId]);
-    return `<button type="button" class="pin-btn${pinned ? " is-on" : ""}" data-pin="${escapeHtml(nodeId)}">${pinned ? "핀 해제" : "이 자리에 핀 고정"}</button>`;
+    return `<button type="button" class="pin-btn${pinned ? " is-on" : ""}" data-pin="${escapeHtml(nodeId)}">${pinned ? t("pin.off") : t("pin.on")}</button>`;
   }
 
   function renderTaskPanel(task) {
@@ -444,19 +467,19 @@
     const remain = remainLabel(task);
     const href = taskHref(task);
     const extraLink = href && !(task.links || []).some((l) => (typeof l === "string" ? l : l?.href) === href)
-      ? renderLinks([{ label: "바로가기", href }])
+      ? renderLinks([{ label: t("shortcut"), href }])
       : "";
     els.panelBody.innerHTML = `
-      <div class="panel-kicker">${tagHtml(task.status)}${stageHtml(task.stage)}${late ? `<span class="tag delay">지연</span>` : ""}
+      <div class="panel-kicker">${tagHtml(task.status)}${stageHtml(task.stage)}${late ? `<span class="tag delay">${t("tag.overdue")}</span>` : ""}
         <span class="bot-chip">${escapeHtml(task.bot)}${task.botRole ? ` · ${escapeHtml(task.botRole)}` : ""}</span>
       </div>
       <h3>${escapeHtml(task.title)}</h3>
       <div class="meta-row">
-        <span>요청 ${escapeHtml(formatTime(task.requested_at, true))}</span>
+        <span>${escapeHtml(t("requested", { time: formatTime(task.requested_at, true) }))}</span>
         ${
           task.deadline
-            ? `<span class="due${late ? " is-overdue" : ""}">${remain ? escapeHtml(remain) : "마감"} · ${escapeHtml(formatTime(task.deadline, true))}</span>`
-            : `<span>마감 없음</span>`
+            ? `<span class="due${late ? " is-overdue" : ""}">${remain ? escapeHtml(remain) : t("due")} · ${escapeHtml(formatTime(task.deadline, true))}</span>`
+            : `<span>${t("noDue")}</span>`
         }
       </div>
       ${pinButton(`bot:${task.botSlug}`)}
@@ -479,15 +502,15 @@
         )
         .join("");
     els.panelBody.innerHTML = `
-      <div class="panel-kicker"><span class="bot-chip${stale ? " is-stale" : ""}">${escapeHtml(bot.role || "봇")}</span></div>
+      <div class="panel-kicker"><span class="bot-chip${stale ? " is-stale" : ""}">${escapeHtml(bot.role || t("bot.defaultRole"))}</span></div>
       <h3>${escapeHtml(bot.bot)}</h3>
-      <div class="meta-row"><span>마지막 갱신 ${escapeHtml(formatTime(bot.updated_at, true))}${stale ? " · 1시간 넘게 멈춤" : ""}</span>
-        <span>하는 중 ${active.length} · 대기 ${queued.length} · 오늘 끝남 ${doneToday.length}</span></div>
+      <div class="meta-row"><span>${escapeHtml(t("lastUpdated", { time: formatTime(bot.updated_at, true) }))}${stale ? t("stale.long") : ""}</span>
+        <span>${t("botCounts", { active: active.length, queued: queued.length, done: doneToday.length })}</span></div>
       ${pinButton(`bot:${bot.slug}`)}
-      <h4 style="margin-top:16px">하는 중</h4>
-      ${active.length ? list(active) : `<p class="note">지금 하는 일은 없어.</p>`}
-      ${queued.length ? `<h4 style="margin-top:16px">대기</h4>${list(queued)}` : ""}
-      ${doneToday.length ? `<h4 style="margin-top:16px">오늘 끝남 ${doneToday.length}</h4>${list(doneToday)}` : ""}
+      <h4 style="margin-top:16px">${t("section.active")}</h4>
+      ${active.length ? list(active) : `<p class="note">${t("empty.active")}</p>`}
+      ${queued.length ? `<h4 style="margin-top:16px">${t("section.queued")}</h4>${list(queued)}` : ""}
+      ${doneToday.length ? `<h4 style="margin-top:16px">${t("doneTodayCount", { n: doneToday.length })}</h4>${list(doneToday)}` : ""}
     `;
   }
 
@@ -536,10 +559,10 @@
   function renderList() {
     const tasks = visibleTasks();
     const groups = [
-      { key: "approval", title: "승인대기" },
-      { key: "check", title: "확인필요" },
-      { key: "in_progress", title: "진행중" },
-      { key: "done", title: "오늘 끝남" },
+      { key: "approval", title: t("status.approval") },
+      { key: "check", title: t("status.check") },
+      { key: "in_progress", title: t("status.in_progress") },
+      { key: "done", title: t("section.doneToday") },
     ];
     const html = groups
       .map((g) => {
@@ -550,17 +573,17 @@
         if (g.key === "done" && !items.length) return "";
         const cards = items.length
           ? items.map((t) => cardHtml(t, "list-card")).join("")
-          : `<p class="inbox-empty">해당 없음</p>`;
+          : `<p class="inbox-empty">${t("empty.group")}</p>`;
         return `<section class="group"><h3>${tagHtml(g.key)} ${g.title} · ${items.length}</h3>${cards}</section>`;
       })
       .join("");
-    els.views.list.innerHTML = html || `<p class="inbox-empty">필터에 맞는 업무가 없어.</p>`;
+    els.views.list.innerHTML = html || `<p class="inbox-empty">${t("empty.tasksFilter")}</p>`;
   }
 
   function renderBoard() {
     const bots = visibleBots();
     if (!bots.length) {
-      els.views.board.innerHTML = `<p class="inbox-empty">필터에 맞는 봇이 없어.</p>`;
+      els.views.board.innerHTML = `<p class="inbox-empty">${t("empty.botsFilter")}</p>`;
       return;
     }
     els.views.board.innerHTML = `<div class="board">${bots
@@ -581,12 +604,12 @@
           .join("");
         return `<section class="board-col${stale ? " is-stale" : ""}" data-bot="${escapeHtml(bot.slug)}">
           <h3><span class="board-avatar" style="background:${fill}"></span>${escapeHtml(bot.bot)}</h3>
-          <div class="role">${escapeHtml(bot.role || "")} · 하는 중 ${active.length} · 대기 ${queued.length}</div>
-          <div class="bot-updated-plain">마지막 갱신 ${escapeHtml(formatTime(bot.updated_at) || "없음")}${stale ? " · 멈춤" : ""}</div>
-          ${cards || `<p class="inbox-empty">열린 일 없음</p>`}
+          <div class="role">${escapeHtml(bot.role || "")} · ${t("boardCounts", { active: active.length, queued: queued.length })}</div>
+          <div class="bot-updated-plain">${escapeHtml(t("lastUpdated", { time: formatTime(bot.updated_at) || t("none") }))}${stale ? t("stale.short") : ""}</div>
+          ${cards || `<p class="inbox-empty">${t("empty.open")}</p>`}
           ${
             doneToday.length
-              ? `<button type="button" class="done-fold" data-fold="${escapeHtml(bot.slug)}">오늘 끝남 ${doneToday.length} · 펼치기</button>
+              ? `<button type="button" class="done-fold" data-fold="${escapeHtml(bot.slug)}">${t("fold.show", { n: doneToday.length })}</button>
                  <div class="done-fold-body" data-fold-body="${escapeHtml(bot.slug)}" hidden>${doneCards}</div>`
               : ""
           }
@@ -653,6 +676,12 @@
       return `M ${pts.map((p) => p.join(",")).join(" L ")} Z`;
     }
     return null;
+  }
+
+  function updatedLabel(d) {
+    const when = formatTime(d.updatedAt);
+    if (!when) return t("graph.noUpdate");
+    return t(d.stale ? "graph.updatedStale" : "graph.updated", { time: when });
   }
 
   function truncate(text, max) {
@@ -924,6 +953,28 @@
       }
     }
 
+    /* Due and link label widths vary by language, so lay them out right-to-left by measured width. */
+    function fitRowLabels(row) {
+      const due = row.select("text.due").node();
+      const link = row.select("text.ext-link").node();
+      const title = row.select("text.title").node();
+      let right = COL_W / 2 - 8;
+      if (due) right -= due.getComputedTextLength() + 8;
+      if (link) {
+        if (!due) right -= 4;
+        link.setAttribute("x", right);
+        link.setAttribute("text-anchor", "end");
+        right -= link.getComputedTextLength() + 8;
+      }
+      if (!title) return;
+      const avail = right - (-COL_W / 2 + 24);
+      let text = title.textContent;
+      while (text.length > 2 && title.getComputedTextLength() > avail) {
+        text = text.replace(/…$/, "").slice(0, -1);
+        title.textContent = `${text}…`;
+      }
+    }
+
     function redrawColumn(sel, d) {
       sel.selectAll("*").remove();
       const rows = [...d.active.map((t) => ({ ...t, rowType: "active" })), ...d.queued.map((t) => ({ ...t, rowType: "queued" }))];
@@ -973,7 +1024,7 @@
         .attr("x", (t) => (remainLabel(t) ? COL_W / 2 - 78 : COL_W / 2 - 12))
         .attr("y", ROW_H / 2 + 4)
         .attr("text-anchor", (t) => (remainLabel(t) ? "start" : "end"))
-        .text("링크");
+        .text(t("link"));
       row
         .filter((t) => remainLabel(t))
         .append("text")
@@ -981,6 +1032,9 @@
         .attr("x", COL_W / 2 - 8)
         .attr("y", ROW_H / 2 + 4)
         .text((t) => remainLabel(t));
+      row.each(function () {
+        fitRowLabels(d3.select(this));
+      });
 
       if (d.doneToday.length) {
         const y = rows.length * ROW_H + 2;
@@ -1008,7 +1062,7 @@
           .attr("class", "title")
           .attr("x", -COL_W / 2 + 24)
           .attr("y", ROW_H / 2 + 4)
-          .text(`오늘 끝남 ${d.doneToday.length}`);
+          .text(t("doneTodayCount", { n: d.doneToday.length }));
       }
     }
 
@@ -1049,11 +1103,7 @@
       g.append("text")
         .attr("class", "bot-updated")
         .attr("y", (d) => d.r + 40)
-        .text((d) => {
-          const when = formatTime(d.updatedAt);
-          if (!when) return "갱신 시각 없음";
-          return d.stale ? `갱신 ${when} · 멈춤` : `갱신 ${when}`;
-        });
+        .text((d) => updatedLabel(d));
 
       g.append("g").attr("class", "column").attr("transform", (d) => `translate(0, ${d.r + 50})`);
       return g;
@@ -1151,11 +1201,7 @@
       clusterSel.classed("is-stale", (d) => d.stale);
       clusterSel.select(".bot-name").text((d) => d.label);
       clusterSel.select(".bot-sub").text((d) => d.sub);
-      clusterSel.select(".bot-updated").text((d) => {
-        const when = formatTime(d.updatedAt);
-        if (!when) return "갱신 시각 없음";
-        return d.stale ? `갱신 ${when} · 멈춤` : `갱신 ${when}`;
-      });
+      clusterSel.select(".bot-updated").text((d) => updatedLabel(d));
       clusterSel.selectAll(".pin-mark").attr("display", (d) => (d.pinned ? "block" : "none"));
       clusterSel.select(".column").each(function (d) {
         redrawColumn(d3.select(this), d);
@@ -1297,6 +1343,7 @@
   }
 
   function renderAll() {
+    state.loaded = true;
     renderRefresh();
     renderInbox();
     renderList();
@@ -1312,6 +1359,15 @@
     saveFilters();
     renderAll();
   }
+
+  // app.js owns the refresh line from here on; i18n.js only sets its first-paint placeholder.
+  els.refreshMeta.removeAttribute("data-i18n");
+
+  document.querySelectorAll("[data-lang]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (window.BotMapI18n.setLang(btn.dataset.lang) && state.loaded) renderAll();
+    });
+  });
 
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => setView(tab.dataset.view));
@@ -1363,7 +1419,7 @@
         const hidden = body.hidden;
         body.hidden = !hidden;
         const n = body.querySelectorAll(".board-card").length;
-        fold.textContent = hidden ? `오늘 끝남 ${n} · 접기` : `오늘 끝남 ${n} · 펼치기`;
+        fold.textContent = t(hidden ? "fold.hide" : "fold.show", { n });
       }
     }
   });
@@ -1375,7 +1431,8 @@
   }
 
   boot().catch((err) => {
-    els.refreshMeta.textContent = "데이터를 불러오지 못했어.";
+    state.loadFailed = true;
+    els.refreshMeta.textContent = t("error.load");
     console.error(err);
   });
 

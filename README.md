@@ -1,3 +1,5 @@
+English · [한국어](README.ko.md)
+
 # Bot Map
 
 A small multi-bot task dashboard. Each bot (or person) writes its own JSON file; the page combines them into one map so you can see what needs a human, what is in progress, and what just finished.
@@ -10,14 +12,26 @@ The page is a static frontend plus two Vercel serverless routes. Task files live
 
 ## What you see
 
-- A pinned inbox, **지금 내가 할 일**, collects every bot's **승인대기** (approval needed, red) and **확인필요** (needs check, yellow) items.
-- The main **그래프** (graph) view shows each bot as a colored node with its open tasks hanging underneath. Done work for today is collapsed into a **오늘 끝남** row.
-- Items with a deadline show remaining or overdue time (`12분 남음` / `5분 지남`). Overdue rows get a red outline.
+- A pinned inbox, **Needs you now**, collects every bot's **Awaiting approval** (red) and **Needs review** (yellow) items.
+- The main **Graph** view shows each bot as a colored node with its open tasks hanging underneath. Done work for today is collapsed into a **Done today** row.
+- Items with a deadline show remaining or overdue time (`12 min left` / `5 min overdue`). Overdue rows get a red outline.
 - A bot whose file has not been updated in an hour is drawn grey (stale).
 - Drag a node to move it. Pin it to keep the position in `localStorage`. Layout is force-based (d3-force); dragging is rAF-batched and positions survive the 60-second refresh.
-- **목록** (list) and **보드** (board) are secondary views. Filter by bot name, or turn on **내 할 일만** to show only approval / check items.
+- **List** and **Board** are secondary views. Filter by bot name, or turn on **My tasks** to show only approval / review items.
 
-The UI copy is Korean. Status keys in the JSON are English (`approval`, `check`, `in_progress`, `done`, `cancelled`).
+Status keys in the JSON are English (`approval`, `check`, `in_progress`, `done`, `cancelled`). The Korean UI shows the equivalent Korean labels.
+
+## Language
+
+The UI is English by default, with Korean as a second language. Task titles, notes, and timeline text come from the bots' JSON and are shown as written, in whatever language they use.
+
+The language is picked in this order:
+
+1. **Saved choice.** The **EN / 한국어** (Korean) toggle in the header switches the UI immediately and saves the choice in `localStorage` (`bot-map:lang:v1`).
+2. **Browser language.** Otherwise the first entry in `navigator.languages` whose primary tag is `en` or `ko` wins (`en-US` → English, `ko-KR` → Korean).
+3. **`defaultLanguage` in `config.json`.** Used when there is no saved choice and the browser prefers neither English nor Korean. Allowed values are `"en"` and `"ko"`; anything else falls back to `"en"`.
+
+English is the base language: every UI string lives in `i18n.js` (`STRINGS.en` and `STRINGS.ko`), and a key missing from the Korean table falls back to English. To add or change copy, edit that table; the keys are stable English identifiers.
 
 ## Deploy
 
@@ -93,7 +107,7 @@ export TASKS_WRITE_SECRET_FILE="/path/to/secret"   # or export TASKS_WRITE_SECRE
 - `stage`: `active` | `queued`.
 - Times should be ISO 8601. An offset such as `+09:00` is recommended.
 - `deadline` may be `null`. For finished work, `done_at` is used when present; otherwise the last timeline timestamp.
-- Put a URL on `link`, `links[].href`, `note_url`, or a timeline entry so the row can show **링크**.
+- Put a URL on `link`, `links[].href`, `note_url`, or a timeline entry so the row can show a **Link**.
 - Human review items should use `status` `approval` or `check`.
 
 This repo ships three clearly fake examples (`owner`, `dev-bot`, `assistant`) for local preview. Replace them with your own slugs; nothing in the app hard-codes bot names.
@@ -105,7 +119,7 @@ python3 -m http.server 8765
 # http://127.0.0.1:8765/  (uses config.json + data/tasks/example-*.json)
 ```
 
-`config.json` lists the local example files and an optional `order` for the first layout. When `/api/tasks` returns bots (after a Blob-backed deploy), that list is used instead.
+`config.json` lists the local example files, an optional `order` for the first layout, and `defaultLanguage` (`"en"` or `"ko"`, see [Language](#language)). When `/api/tasks` returns bots (after a Blob-backed deploy), that list is used instead of the local files; `order` and `defaultLanguage` still apply.
 
 To exercise the API and Blob store locally, use `vercel dev` with `BLOB_READ_WRITE_TOKEN` and `TASKS_WRITE_SECRET` set in `.env.local` (never commit that file).
 
@@ -113,10 +127,3 @@ To exercise the API and Blob store locally, use `vercel dev` with `BLOB_READ_WRI
 
 MIT
 
----
-
-## 한국어
-
-여러 봇의 일을 한 화면에 모아 보는 대시보드입니다. 승인대기(빨강), 확인필요(노랑), 진행중(파랑), 오늘 끝난 일(접힘)을 그래프·목록·보드로 보여 주고, 마감이 있으면 남은·지난 시간을 표시합니다. 한 시간 동안 파일이 안 바뀌면 해당 봇은 회색으로 표시됩니다.
-
-Vercel에 올린 뒤 Blob 스토어를 연결하고, `TASKS_WRITE_SECRET`만 환경 변수로 넣으면 됩니다. 각 봇은 `PUT /api/tasks/<slug>`로 자기 파일만 갱신합니다. 배포 주소는 `BOT_MAP_URL`, 비밀값은 `TASKS_WRITE_SECRET` 또는 `TASKS_WRITE_SECRET_FILE`로 `push-tasks.sh`에 넘기면 됩니다.

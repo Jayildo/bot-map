@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -16,30 +16,34 @@
           <i></i><i></i><i></i>
         </span>
         <div class="brand-text">
-          <h1>봇 맵</h1>
-          <p class="refresh-meta" id="refresh-meta">마지막 갱신 — · 1분마다 갱신</p>
+          <h1 data-i18n="brand">Bot Map</h1>
+          <p class="refresh-meta" id="refresh-meta" data-i18n="refreshMeta.placeholder">Last updated — · refreshes every minute</p>
         </div>
       </div>
       <div class="top-actions">
         <div class="filters">
           <label class="filter-search">
-            <span class="sr-only">봇 이름 필터</span>
-            <input type="search" id="bot-filter" placeholder="봇 이름" autocomplete="off">
+            <span class="sr-only" data-i18n="filter.botLabel">Filter by bot name</span>
+            <input type="search" id="bot-filter" placeholder="Bot name" data-i18n-placeholder="filter.botPlaceholder" autocomplete="off">
           </label>
-          <button type="button" class="btn toggle" id="mine-only" aria-pressed="false" title="승인대기·확인필요만 보기">내 할 일만</button>
+          <button type="button" class="btn toggle" id="mine-only" aria-pressed="false" title="Show only items awaiting approval or review" data-i18n="filter.mineOnly" data-i18n-title="filter.mineOnlyTitle">My tasks</button>
         </div>
-        <nav class="tabs" role="tablist" aria-label="보기">
-          <button type="button" class="tab is-active" data-view="graph" role="tab" aria-selected="true">그래프</button>
-          <button type="button" class="tab" data-view="list" role="tab" aria-selected="false">목록</button>
-          <button type="button" class="tab" data-view="board" role="tab" aria-selected="false">보드</button>
+        <nav class="tabs" role="tablist" aria-label="View" data-i18n-aria="tabs.label">
+          <button type="button" class="tab is-active" data-view="graph" role="tab" aria-selected="true" data-i18n="tabs.graph">Graph</button>
+          <button type="button" class="tab" data-view="list" role="tab" aria-selected="false" data-i18n="tabs.list">List</button>
+          <button type="button" class="tab" data-view="board" role="tab" aria-selected="false" data-i18n="tabs.board">Board</button>
         </nav>
-        <button type="button" class="btn" id="reset-layout" title="고정한 위치를 지우고 다시 배치합니다">배치 초기화</button>
+        <div class="lang-toggle" role="group" aria-label="Language" data-i18n-aria="lang.label">
+          <button type="button" class="lang-opt" data-lang="en" aria-pressed="true" data-i18n="lang.en">EN</button>
+          <button type="button" class="lang-opt" data-lang="ko" lang="ko" aria-pressed="false" data-i18n="lang.ko">한국어</button>
+        </div>
+        <button type="button" class="btn" id="reset-layout" title="Clear pinned positions and lay out again" data-i18n="reset" data-i18n-title="reset.title">Reset layout</button>
       </div>
     </header>
 
     <section class="inbox" aria-labelledby="inbox-title">
       <div class="inbox-head">
-        <h2 id="inbox-title">지금 내가 할 일</h2>
+        <h2 id="inbox-title" data-i18n="inbox.title">Needs you now</h2>
         <span class="count" id="inbox-count">0</span>
       </div>
       <div class="inbox-track" id="inbox-track"></div>
@@ -48,15 +52,15 @@
     <main class="stage">
       <section id="view-graph" class="view is-active" data-view="graph">
         <div class="graph-wrap" id="graph-wrap">
-          <svg id="graph" role="img" aria-label="봇과 업무 그래프"></svg>
+          <svg id="graph" role="img" aria-label="Graph of bots and their tasks" data-i18n-aria="graph.label"></svg>
           <div class="graph-chrome">
-            <div class="legend" aria-label="상태 색">
-              <span><i class="dot approval"></i>승인대기</span>
-              <span><i class="dot check"></i>확인필요</span>
-              <span><i class="dot in-progress"></i>진행중</span>
-              <span><i class="dot done"></i>끝남</span>
+            <div class="legend" aria-label="Status colors" data-i18n-aria="legend.label">
+              <span><i class="dot approval"></i><span data-i18n="status.approval">Awaiting approval</span></span>
+              <span><i class="dot check"></i><span data-i18n="status.check">Needs review</span></span>
+              <span><i class="dot in-progress"></i><span data-i18n="status.in_progress">In progress</span></span>
+              <span><i class="dot done"></i><span data-i18n="status.done">Done</span></span>
             </div>
-            <p class="hint">봇을 끌어 옮기고, 핀으로 고정할 수 있어요. 행을 누르면 기록이 열려요. 휴대폰에서는 두 손가락으로 확대·이동해요.</p>
+            <p class="hint" data-i18n="hint">Drag a bot to move it, and pin it to keep it in place. Click a row to open its history. On phones, pinch to zoom and pan.</p>
           </div>
         </div>
       </section>
@@ -66,12 +70,13 @@
 
       <aside id="panel" class="panel" hidden>
         <div class="panel-inner">
-          <button type="button" class="panel-close" id="panel-close" aria-label="닫기">닫기</button>
+          <button type="button" class="panel-close" id="panel-close" aria-label="Close" data-i18n="panel.close" data-i18n-aria="panel.close">Close</button>
           <div id="panel-body"></div>
         </div>
       </aside>
     </main>
   </div>
+  <script src="i18n.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="app.js"></script>
 </body>
