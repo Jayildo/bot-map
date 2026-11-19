@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>Bot Map</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">
+          <i></i><i></i><i></i>
+        </span>
+        <div class="brand-text">
+          <h1>봇 맵</h1>
+          <p class="refresh-meta" id="refresh-meta">마지막 갱신 — · 1분마다 갱신</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="filters">
+          <label class="filter-search">
+            <span class="sr-only">봇 이름 필터</span>
+            <input type="search" id="bot-filter" placeholder="봇 이름" autocomplete="off">
+          </label>
+          <button type="button" class="btn toggle" id="mine-only" aria-pressed="false" title="승인대기·확인필요만 보기">내 할 일만</button>
+        </div>
+        <nav class="tabs" role="tablist" aria-label="보기">
+          <button type="button" class="tab is-active" data-view="graph" role="tab" aria-selected="true">그래프</button>
+          <button type="button" class="tab" data-view="list" role="tab" aria-selected="false">목록</button>
+          <button type="button" class="tab" data-view="board" role="tab" aria-selected="false">보드</button>
+        </nav>
+        <button type="button" class="btn" id="reset-layout" title="고정한 위치를 지우고 다시 배치합니다">배치 초기화</button>
+      </div>
+    </header>
+
+    <section class="inbox" aria-labelledby="inbox-title">
+      <div class="inbox-head">
+        <h2 id="inbox-title">지금 내가 할 일</h2>
+        <span class="count" id="inbox-count">0</span>
+      </div>
+      <div class="inbox-track" id="inbox-track"></div>
+    </section>
+
+    <main class="stage">
+      <section id="view-graph" class="view is-active" data-view="graph">
+        <div class="graph-wrap" id="graph-wrap">
+          <svg id="graph" role="img" aria-label="봇과 업무 그래프"></svg>
+          <div class="graph-chrome">
+            <div class="legend" aria-label="상태 색">
+              <span><i class="dot approval"></i>승인대기</span>
+              <span><i class="dot check"></i>확인필요</span>
+              <span><i class="dot in-progress"></i>진행중</span>
+              <span><i class="dot done"></i>끝남</span>
+            </div>
+            <p class="hint">봇을 끌어 옮기고, 핀으로 고정할 수 있어요. 행을 누르면 기록이 열려요. 휴대폰에서는 두 손가락으로 확대·이동해요.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-list" class="view" data-view="list" hidden></section>
+      <section id="view-board" class="view" data-view="board" hidden></section>
+
+      <aside id="panel" class="panel" hidden>
+        <div class="panel-inner">
+          <button type="button" class="panel-close" id="panel-close" aria-label="닫기">닫기</button>
+          <div id="panel-body"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

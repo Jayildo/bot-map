@@ -1,0 +1,10 @@
+{
+  "name": "bot-map",
+  "private": true,
+  "license": "MIT",
+  "description": "A multi-bot task map dashboard for Vercel",
+  "type": "module",
+  "dependencies": {
+    "@vercel/blob": "^2.9.0"
+  }
+}

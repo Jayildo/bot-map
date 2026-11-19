@@ -1,0 +1,72 @@
+{
+  "bot": "Dev Bot",
+  "slug": "dev-bot",
+  "kind": "bot",
+  "role": "Implementation",
+  "shape": "",
+  "color": "blue",
+  "updated_at": "2026-11-19T19:05:00+09:00",
+  "tasks": [
+    {
+      "id": "dev-1",
+      "title": "Ship the task map graph polish",
+      "status": "in_progress",
+      "stage": "active",
+      "deadline": "2026-11-19T19:40:00+09:00",
+      "requested_at": "2026-11-19T16:00:00+09:00",
+      "done_at": null,
+      "note": "Example work in progress.",
+      "link": "https://example.com/pull/42",
+      "links": [{ "label": "PR #42", "href": "https://example.com/pull/42" }],
+      "timeline": [
+        { "at": "2026-11-19T16:00:00+09:00", "text": "Started implementing smooth drag.", "link": null },
+        { "at": "2026-11-19T18:50:00+09:00", "text": "Graph positions now survive the 60s refresh.", "link": null }
+      ]
+    },
+    {
+      "id": "dev-2",
+      "title": "Write the public README",
+      "status": "check",
+      "stage": "active",
+      "deadline": "2026-11-19T21:00:00+09:00",
+      "requested_at": "2026-11-19T15:30:00+09:00",
+      "done_at": null,
+      "note": "Example item that needs a human check.",
+      "link": null,
+      "links": [],
+      "timeline": [
+        { "at": "2026-11-19T15:30:00+09:00", "text": "Draft is ready for a wording pass.", "link": null }
+      ]
+    },
+    {
+      "id": "dev-3",
+      "title": "Add a sample MIT license",
+      "status": "done",
+      "stage": "active",
+      "deadline": null,
+      "requested_at": "2026-11-19T14:00:00+09:00",
+      "done_at": "2026-11-19T14:20:00+09:00",
+      "note": "Example completed item (shown under Today).",
+      "link": null,
+      "links": [],
+      "timeline": [
+        { "at": "2026-11-19T14:20:00+09:00", "text": "License file added.", "link": null }
+      ]
+    },
+    {
+      "id": "dev-4",
+      "title": "Backfill older release notes",
+      "status": "in_progress",
+      "stage": "queued",
+      "deadline": "2026-11-21T18:00:00+09:00",
+      "requested_at": "2026-11-19T12:00:00+09:00",
+      "done_at": null,
+      "note": "Example queued work.",
+      "link": null,
+      "links": [],
+      "timeline": [
+        { "at": "2026-11-19T12:00:00+09:00", "text": "Parked until the current ship is done.", "link": null }
+      ]
+    }
+  ]
+}

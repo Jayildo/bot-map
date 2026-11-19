@@ -1,0 +1,8 @@
+{
+  "localFiles": [
+    "data/tasks/example-owner.json",
+    "data/tasks/example-dev-bot.json",
+    "data/tasks/example-assistant.json"
+  ],
+  "order": ["owner", "dev-bot", "assistant"]
+}

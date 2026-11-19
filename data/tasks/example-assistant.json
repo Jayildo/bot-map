@@ -1,0 +1,41 @@
+{
+  "bot": "Assistant",
+  "slug": "assistant",
+  "kind": "bot",
+  "role": "Coordination",
+  "shape": "teardrop",
+  "color": "black",
+  "updated_at": "2026-11-19T19:10:00+09:00",
+  "tasks": [
+    {
+      "id": "asst-1",
+      "title": "Relay status to the owner",
+      "status": "in_progress",
+      "stage": "active",
+      "deadline": "2026-11-19T19:30:00+09:00",
+      "requested_at": "2026-11-19T18:00:00+09:00",
+      "done_at": null,
+      "note": "Example coordination task.",
+      "link": null,
+      "links": [],
+      "timeline": [
+        { "at": "2026-11-19T18:00:00+09:00", "text": "Collecting the latest bot updates.", "link": null }
+      ]
+    },
+    {
+      "id": "asst-2",
+      "title": "Confirm last week's leftover item",
+      "status": "check",
+      "stage": "active",
+      "deadline": "2026-11-19T17:00:00+09:00",
+      "requested_at": "2026-11-18T11:00:00+09:00",
+      "done_at": null,
+      "note": "Example overdue check item.",
+      "link": "https://example.com/notes/leftover",
+      "links": [{ "label": "Note", "href": "https://example.com/notes/leftover" }],
+      "timeline": [
+        { "at": "2026-11-18T11:00:00+09:00", "text": "Waiting for a yes/no on the leftover item.", "link": null }
+      ]
+    }
+  ]
+}

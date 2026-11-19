@@ -1,0 +1,9 @@
+node_modules
+.vercel
+.secret*
+.env
+.env.local
+.env*.local
+.git
+docs
+*.md

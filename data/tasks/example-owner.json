@@ -1,0 +1,26 @@
+{
+  "bot": "Owner",
+  "slug": "owner",
+  "kind": "person",
+  "role": "Approvals",
+  "shape": "",
+  "color": "",
+  "updated_at": "2026-11-19T18:40:00+09:00",
+  "tasks": [
+    {
+      "id": "own-1",
+      "title": "Approve the docs site deploy",
+      "status": "approval",
+      "stage": "active",
+      "deadline": "2026-11-19T20:00:00+09:00",
+      "requested_at": "2026-11-19T17:10:00+09:00",
+      "done_at": null,
+      "note": "Example item only — waiting on the owner.",
+      "link": "https://example.com/deploys/docs",
+      "links": [{ "label": "Preview", "href": "https://example.com/deploys/docs" }],
+      "timeline": [
+        { "at": "2026-11-19T17:10:00+09:00", "text": "Deploy preview is ready for review.", "link": "https://example.com/deploys/docs" }
+      ]
+    }
+  ]
+}
