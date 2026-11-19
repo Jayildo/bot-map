@@ -44,6 +44,7 @@
     botOrder: [],
     loaded: false,
     loadFailed: false,
+    handoffWant: {},
   };
 
   const els = {
@@ -177,6 +178,33 @@
       }
     }
     return candidates.find((u) => /^https?:\/\//i.test(u)) || null;
+  }
+
+  function taskLinks(task) {
+    if (!task) return [];
+    const candidates = [];
+    if (typeof task.link === "string") candidates.push(task.link);
+    if (Array.isArray(task.links)) {
+      for (const l of task.links) {
+        if (typeof l === "string") candidates.push(l);
+        else if (l && typeof l.href === "string") candidates.push(l.href);
+      }
+    }
+    if (typeof task.note_url === "string") candidates.push(task.note_url);
+    if (Array.isArray(task.timeline)) {
+      for (const e of task.timeline) {
+        if (e && typeof e.link === "string") candidates.push(e.link);
+      }
+    }
+    return [...new Set(candidates.map((u) => u.trim()).filter((u) => /^https?:\/\//i.test(u)))];
+  }
+
+  function latestEntry(task) {
+    const entries = (task?.timeline || []).filter((e) => e && (e.text || e.at));
+    if (!entries.length) return null;
+    return entries.reduce((best, e) =>
+      (parseTime(e.at)?.getTime() || 0) >= (parseTime(best.at)?.getTime() || 0) ? e : best
+    );
   }
 
   function statusLabel(key) {
@@ -462,7 +490,111 @@
     return `<button type="button" class="pin-btn${pinned ? " is-on" : ""}" data-pin="${escapeHtml(nodeId)}">${pinned ? t("pin.off") : t("pin.on")}</button>`;
   }
 
+  function handoffGaps(task) {
+    const gaps = [];
+    if (isOverdue(task)) gaps.push(t("handoff.gap.overdue"));
+    if (task.status === "approval") gaps.push(t("handoff.gap.approval"));
+    if (task.status === "check") gaps.push(t("handoff.gap.check"));
+    const bot = botBySlug(task.botSlug);
+    if (bot && isStale(bot)) {
+      const when = formatTime(bot.updated_at, true);
+      gaps.push(when ? t("handoff.gap.stale", { time: when }) : t("handoff.gap.staleNever"));
+    }
+    const closed = task.status === "done" || task.status === "cancelled";
+    if (!task.deadline && !closed) gaps.push(t("handoff.gap.noDeadline"));
+    if (!taskLinks(task).length) gaps.push(t("handoff.gap.noLink"));
+    if (!latestEntry(task)) gaps.push(t("handoff.gap.noTimeline"));
+    if (task.status === "done") gaps.push(t("handoff.gap.done"));
+    if (task.status === "cancelled") gaps.push(t("handoff.gap.cancelled"));
+    return gaps.length ? gaps : [t("handoff.gap.none")];
+  }
+
+  /* Plain-text brief for the bot that owns `task`. No host, secret, or auth header. */
+  function handoffMessage(task, want) {
+    const slug = task.botSlug || "";
+    const lines = [t("handoff.to", { bot: task.bot || slug, slug })];
+    lines.push("");
+    lines.push(t("handoff.item", { title: task.title || "" }));
+    lines.push(t("handoff.id", { id: task.id || "" }));
+    lines.push(t("handoff.status", { status: statusLabel(task.status) }));
+    lines.push(t("handoff.requested", { time: formatTime(task.requested_at, true) || "—" }));
+    const due = task.deadline ? formatTime(task.deadline, true) : "";
+    const remain = remainLabel(task);
+    if (!due) lines.push(t("handoff.noDeadline"));
+    else if (remain) lines.push(t("handoff.deadline", { time: due, remain }));
+    else lines.push(t("handoff.deadlineOnly", { time: due }));
+    const links = taskLinks(task);
+    if (links.length) lines.push(t("handoff.links"), ...links.map((u) => `- ${u}`));
+    else lines.push(t("handoff.noLinks"));
+    const last = latestEntry(task);
+    lines.push(
+      last
+        ? t("handoff.latest", { time: formatTime(last.at, true) || "—", text: last.text || "" })
+        : t("handoff.noLatest")
+    );
+    lines.push(task.note ? t("handoff.note", { note: task.note }) : t("handoff.noNote"));
+    lines.push("");
+    lines.push(t("handoff.gapsTitle"), ...handoffGaps(task));
+    lines.push("");
+    const ask = String(want || "").trim();
+    lines.push(t("handoff.wantTitle"), ask || t("handoff.defaultAsk"));
+    lines.push("");
+    lines.push(t("handoff.closing", { slug }));
+    return lines.join("\n");
+  }
+
+  function handoffHtml(task) {
+    return `
+      <section class="handoff">
+        <h4>${t("handoff.title")}</h4>
+        <label class="handoff-label" for="handoff-want">${t("handoff.wantLabel")}</label>
+        <textarea id="handoff-want" class="handoff-want" rows="2" data-handoff-want="${escapeHtml(task.id)}"
+          placeholder="${escapeHtml(t("handoff.wantPlaceholder"))}">${escapeHtml(state.handoffWant[task.id] || "")}</textarea>
+        <div class="handoff-bar">
+          <button type="button" class="handoff-copy" data-handoff-copy>${t("handoff.copy")}</button>
+        </div>
+        <pre class="handoff-msg" aria-label="${escapeHtml(t("handoff.codeLabel"))}"><code data-handoff-msg></code></pre>
+      </section>
+    `;
+  }
+
+  function updateHandoffMessage(task) {
+    const code = els.panelBody.querySelector("[data-handoff-msg]");
+    if (code) code.textContent = handoffMessage(task, state.handoffWant[task.id]);
+  }
+
+  function copyText(text) {
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch {
+        ok = false;
+      }
+      ta.remove();
+      return ok;
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(() => true, () => fallback());
+    }
+    return Promise.resolve(fallback());
+  }
+
   function renderTaskPanel(task) {
+    // Keep the owner's cursor in the want box when the panel is rebuilt (refresh, language toggle).
+    const prev = document.activeElement;
+    const keepFocus =
+      prev && prev.matches && prev.matches("[data-handoff-want]") && prev.dataset.handoffWant === task.id
+        ? { start: prev.selectionStart, end: prev.selectionEnd }
+        : null;
     const late = isOverdue(task);
     const remain = remainLabel(task);
     const href = taskHref(task);
@@ -486,7 +618,16 @@
       <p class="note">${escapeHtml(task.note || "")}</p>
       ${renderLinks(task.links)}${extraLink}
       ${renderTimeline(task.timeline)}
+      ${handoffHtml(task)}
     `;
+    updateHandoffMessage(task);
+    if (keepFocus) {
+      const box = els.panelBody.querySelector("[data-handoff-want]");
+      if (box) {
+        box.focus({ preventScroll: true });
+        box.setSelectionRange(keepFocus.start, keepFocus.end);
+      }
+    }
   }
 
   function renderBotPanel(bot) {
@@ -1376,6 +1517,37 @@
     if (state.graph) state.graph.resetPins();
   });
   els.panelClose.addEventListener("click", closePanel);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !els.panel.hidden) closePanel();
+  });
+
+  els.panelBody.addEventListener("input", (event) => {
+    const box = event.target.closest("[data-handoff-want]");
+    if (!box) return;
+    const id = box.dataset.handoffWant;
+    if (box.value) state.handoffWant[id] = box.value;
+    else delete state.handoffWant[id];
+    const task = taskById(id);
+    if (task) updateHandoffMessage(task);
+  });
+
+  let copyTimer = null;
+  els.panelBody.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-handoff-copy]");
+    if (!btn) return;
+    const code = els.panelBody.querySelector("[data-handoff-msg]");
+    if (!code) return;
+    copyText(code.textContent).then((ok) => {
+      clearTimeout(copyTimer);
+      btn.textContent = t(ok ? "handoff.copied" : "handoff.copyFailed");
+      btn.classList.toggle("is-done", ok);
+      btn.classList.toggle("is-failed", !ok);
+      copyTimer = setTimeout(() => {
+        btn.textContent = t("handoff.copy");
+        btn.classList.remove("is-done", "is-failed");
+      }, 1500);
+    });
+  });
   if (els.botFilter) {
     els.botFilter.value = state.filterBot;
     els.botFilter.addEventListener("input", applyFiltersFromUi);

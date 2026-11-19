@@ -313,6 +313,36 @@ body {
 }
 .pin-btn.is-on { border-color: #f5b94255; color: var(--check); }
 
+.handoff { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+.handoff-label { display: block; color: var(--muted); font-size: 12px; font-weight: 650; margin: 0 0 6px; }
+.handoff-want {
+  display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 52px;
+  background: var(--card); border: 1px solid var(--line-strong); border-radius: 10px;
+  color: var(--text); font: inherit; font-size: 13px; line-height: 1.45; padding: 8px 10px;
+}
+.handoff-want::placeholder { color: var(--faint); }
+.handoff-want:focus { outline: none; border-color: #5b9dff88; }
+.handoff-bar { display: flex; justify-content: flex-end; margin: 10px 0 6px; }
+.handoff-copy {
+  appearance: none; border: 1px solid var(--line-strong);
+  background: var(--elev); color: var(--text);
+  font: inherit; font-size: 12px; font-weight: 650;
+  padding: 6px 12px; border-radius: 9px; cursor: pointer; min-width: 64px;
+}
+.handoff-copy:hover { background: var(--card-hover); }
+.handoff-copy.is-done { border-color: #86c9a555; color: var(--done-bright); }
+.handoff-copy.is-failed { border-color: #f43f5e55; color: #ff8a9b; }
+.handoff-msg {
+  margin: 0; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px; max-height: none;
+  white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal;
+  user-select: text;
+}
+.handoff-msg code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, var(--font), monospace;
+  font-size: 12px; line-height: 1.55; color: #d8d8de;
+}
+
 #view-list, #view-board { padding: 16px 20px 32px; background: var(--bg); }
 .group { margin-bottom: 22px; }
 .group h3 {

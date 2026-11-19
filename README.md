@@ -21,6 +21,16 @@ The page is a static frontend plus two Vercel serverless routes. Task files live
 
 Status keys in the JSON are English (`approval`, `check`, `in_progress`, `done`, `cancelled`). The Korean UI shows the equivalent Korean labels.
 
+## Message for a bot
+
+Click a task (graph row, list or board card, inbox card, or a task in a bot panel) and the panel on the right also shows a ready-to-paste message for the bot that owns it. Use it to brief a group bot that is not wired to a coordinator.
+
+- The message lists the item (title, id, status, requested time, deadline), its links, the latest history entry and note, and what's going on (overdue, waiting for your approval or review, stale file, missing deadline or link).
+- Type an optional **What I want**; the message updates as you type. Left empty, it asks for status, next step, and a new ETA. The draft is kept per task for this session only.
+- **Copy** puts the plain text on the clipboard (the button shows **Copied** briefly).
+- The message wording follows the UI language; task text is inserted as written. It ends by asking the bot to `PUT /api/tasks/<slug>` and never includes a host or secret.
+- **Esc** closes the panel.
+
 ## Language
 
 The UI is English by default, with Korean as a second language. Task titles, notes, and timeline text come from the bots' JSON and are shown as written, in whatever language they use.
